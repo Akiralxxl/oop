@@ -1,1 +1,78 @@
+#include <iostream>
+#include <string>
 
+class Entity {
+protected:
+    std::string name; 
+    int health;    
+
+public:
+    Entity(const std::string& n, int h) : name(n), health(h) {}
+
+    virtual void displayInfo() const {
+        std::cout << "Name: " << name << ", HP: " << health << std::endl;
+    }
+
+    virtual ~Entity() {}
+};
+
+class Player : public Entity {
+private:
+    int experience; 
+    int level;
+
+public:
+    Player(const std::string& n, int h, int exp, int lvl)
+        : Entity(n, h), experience(exp), level(lvl) {}
+
+    void displayInfo() const override {
+        Entity::displayInfo(); 
+        std::cout << "Level: " << level << ", Experience: " << experience << std::endl;
+    }
+};
+
+class Enemy : public Entity {
+private:
+    std::string type; 
+    int attackPower;
+
+public:
+    Enemy(const std::string& n, int h, const std::string& t, int atk)
+        : Entity(n, h), type(t), attackPower(atk) {}
+
+    void displayInfo() const override {
+        Entity::displayInfo(); 
+        std::cout << "Type: " << type << ", Attack: " << attackPower << std::endl;
+    }
+};
+
+class Boss : public Enemy {
+private:
+    std::string specialAbility; 
+    int abilityPower;
+
+public:
+    Boss(const std::string& n, int h, const std::string& t, int atk, 
+         const std::string& ability, int abPower)
+        : Enemy(n, h, t, atk), specialAbility(ability), abilityPower(abPower) {}
+
+    void displayInfo() const override {
+        Enemy::displayInfo(); 
+        std::cout << "Special Ability: " << specialAbility 
+                  << " (Power: " << abilityPower << ")" << std::endl;
+    }
+};
+
+int main() {
+    
+    Player hero("Shadow Assassin", 150, 2450, 15);
+    Enemy monster("Dark Elf Archer", 80, "Elf", 25);
+    Boss finalBoss("Ancient Lich King", 500, "Undead", 45, 
+                  "Soul Drain", 75);
+
+    hero.displayInfo();
+    monster.displayInfo();
+    finalBoss.displayInfo();
+
+    return 0;
+}
