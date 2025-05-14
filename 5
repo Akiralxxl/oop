@@ -1,1 +1,116 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+#include <iomanip> // для форматирования вывода
 
+template <typename T>
+class Queue {
+private:
+    std::vector<T> elements;
+    size_t max_size;
+
+public:
+    Queue(size_t size = 10) : max_size(size) {}
+
+    void push(const T& item) {
+        if (elements.size() >= max_size) {
+            throw std::overflow_error("Queue is full!");
+        }
+        elements.push_back(item);
+        std::cout << "Added: " << std::quoted(item) << " (Size: " << elements.size() << "/" << max_size << ")\n";
+    }
+
+    T pop() {
+        if (elements.empty()) {
+            throw std::out_of_range("Queue is empty!");
+        }
+        T first = elements.front();
+        elements.erase(elements.begin());
+        std::cout << "Removed: " << std::quoted(first) << " (Remaining: " << elements.size() << ")\n";
+        return first;
+    }
+
+    void display() const {
+        std::cout << "┌─────────────── Queue ───────────────┐\n";
+        if (elements.empty()) {
+            std::cout << "│             EMPTY QUEUE            │\n";
+        } else {
+            std::cout << "│ Size: " << std::setw(3) << elements.size() 
+                      << "/" << std::setw(3) << max_size 
+                      << "   Items: ";
+            for (size_t i = 0; i < elements.size(); ++i) {
+                if (i > 0) std::cout << ", ";
+                if (i >= 3 && elements.size() > 5) {
+                    std::cout << "...+" << (elements.size()-4) << " more";
+                    break;
+                }
+                std::cout << std::quoted(elements[i]);
+            }
+            std::cout << std::setw(15 - elements.size()*2) << " │\n";
+        }
+        std::cout << "└────────────────────────────────────┘\n";
+    }
+
+    void resize(size_t new_size) {
+        if (new_size < elements.size()) {
+            throw std::invalid_argument("New size is smaller than current elements count!");
+        }
+        max_size = new_size;
+        std::cout << "Queue resized to " << max_size << " elements\n";
+    }
+};
+
+int main() {
+    std::cout << "\n=== Game Event Queue ===" << std::endl;
+    Queue<std::string> eventQueue(5);
+
+    eventQueue.push("Enemy Spawn");
+    eventQueue.push("Item Pickup");
+    eventQueue.push("Level Up");
+    eventQueue.display();
+
+    eventQueue.pop();
+    eventQueue.push("Quest Complete");
+    eventQueue.push("Damage Taken");
+    eventQueue.display();
+
+    try {
+        eventQueue.push("Extra Event"); // Попытка переполнить очередь
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    eventQueue.resize(7);
+    eventQueue.push("New Ability");
+    eventQueue.display();
+
+    std::cout << "\n=== High Score Queue ===" << std::endl;
+    Queue<int> scoreQueue(3);
+    
+    scoreQueue.push(8500);
+    scoreQueue.push(9200);
+    scoreQueue.push(7800);
+    scoreQueue.display();
+
+    scoreQueue.pop();
+    scoreQueue.push(10500);
+    scoreQueue.display();
+
+    std::cout << "\n=== Player Queue ===" << std::endl;
+    Queue<std::string> playerQueue;
+    
+    playerQueue.push("Warrior");
+    playerQueue.push("Mage");
+    playerQueue.push("Rogue");
+    playerQueue.push("Cleric");
+    playerQueue.push("Ranger");
+    playerQueue.display();
+
+    playerQueue.resize(8);
+    playerQueue.push("Necromancer");
+    playerQueue.push("Paladin");
+    playerQueue.display();
+
+    return 0;
+}
