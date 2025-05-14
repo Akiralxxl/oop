@@ -1,1 +1,60 @@
+#include <iostream>
+#include <string>
 
+class Weapon {
+private:
+    std::string name;
+    int damage;
+    float weight;
+
+public:
+    Weapon(const std::string& n, int d, float w) : name(n), damage(d), weight(w) {}
+
+    // Перегрузка оператора + (теперь создаёт более мощное комбинированное оружие)
+    Weapon operator+(const Weapon& other) const {
+        std::string newName = "Legendary " + name + "-" + other.name;
+        int newDamage = (damage + other.damage) * 1.3; // Увеличиваем суммарный урон на 30%
+        float newWeight = (weight + other.weight) * 0.9; // Уменьшаем суммарный вес на 10%
+        return Weapon(newName, newDamage, newWeight);
+    }
+
+    // Перегрузка оператора > (сравнение по урону)
+    bool operator>(const Weapon& other) const {
+        return damage > other.damage;
+    }
+
+    // Перегрузка оператора << (вывод информации)
+    friend std::ostream& operator<<(std::ostream& os, const Weapon& weapon) {
+        os << "Weapon: " << weapon.name << ", Damage: " << weapon.damage
+           << ", Weight: " << weapon.weight << " kg";
+        return os;
+    }
+};
+
+int main() {
+    // Новые более мощные виды оружия
+    Weapon sword("Dragon Slayer", 45, 4.2);
+    Weapon bow("Phoenix Longbow", 35, 2.8);
+    Weapon axe("Titan Crusher", 55, 6.5);
+    Weapon staff("Archmage Staff", 40, 3.1);
+
+    // Демонстрация перегрузки оператора +
+    Weapon combined1 = sword + axe;
+    Weapon combined2 = bow + staff;
+    std::cout << "=== Combined weapons ===\n";
+    std::cout << "1. " << combined1 << std::endl;
+    std::cout << "2. " << combined2 << std::endl;
+
+    // Демонстрация перегрузки оператора >
+    std::cout << "\n=== Weapon comparison ===\n";
+    std::cout << sword << (sword > bow ? " > " : " <= ") << bow << std::endl;
+    std::cout << axe << (axe > staff ? " > " : " <= ") << staff << std::endl;
+    std::cout << combined1 << (combined1 > combined2 ? " > " : " <= ") << combined2 << std::endl;
+
+    // Комбинирование всех оружий
+    Weapon ultimateWeapon = combined1 + combined2;
+    std::cout << "\n=== Ultimate Weapon ===\n";
+    std::cout << ultimateWeapon << std::endl;
+
+    return 0;
+}
