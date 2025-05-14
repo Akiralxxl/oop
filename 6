@@ -1,1 +1,117 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+#include <iomanip>
 
+template <typename T>
+class Queue {
+private:
+    std::vector<T> elements;
+    size_t capacity;
+    
+public:
+    Queue(size_t cap = 5) : capacity(cap) {}
+
+    void push(const T& item) {
+        if (elements.size() >= capacity) {
+            throw std::overflow_error("Queue is full - cannot push!");
+        }
+        elements.push_back(item);
+        std::cout << "Added: \"" << item << "\" (Size: " << elements.size() << "/" << capacity << ")\n";
+    }
+
+    T pop() {
+        if (elements.empty()) {
+            throw std::out_of_range("Queue is empty - cannot pop!");
+        }
+        T first = elements.front();
+        elements.erase(elements.begin());
+        std::cout << "Removed: \"" << first << "\" (Remaining: " << elements.size() << ")\n";
+        return first;
+    }
+
+    void display() const {
+        std::cout << "╔════════════ Queue ════════════╗\n";
+        if (elements.empty()) {
+            std::cout << "║          EMPTY QUEUE         ║\n";
+        } else {
+            std::cout << "║ Size: " << std::setw(2) << elements.size() 
+                      << "/" << std::setw(2) << capacity << " ";
+            for (const auto& item : elements) {
+                std::cout << "[" << item << "] ";
+            }
+            std::cout << "║\n";
+        }
+        std::cout << "╚══════════════════════════════╝\n";
+    }
+
+    void set_capacity(size_t new_cap) {
+        if (new_cap < elements.size()) {
+            throw std::invalid_argument("New capacity is smaller than current size!");
+        }
+        capacity = new_cap;
+        std::cout << "Queue capacity changed to " << capacity << "\n";
+    }
+};
+
+int main() {
+    try {
+        std::cout << "\n=== Game Command Queue ===" << std::endl;
+        Queue<std::string> cmdQueue(4);
+
+        cmdQueue.push("MOVE NORTH");
+        cmdQueue.push("ATTACK");
+        cmdQueue.push("USE POTION");
+        cmdQueue.display();
+
+        cmdQueue.pop();
+        cmdQueue.push("OPEN CHEST");
+        cmdQueue.push("TALK NPC");
+        cmdQueue.display();
+
+        cmdQueue.set_capacity(6);
+        cmdQueue.push("EQUIP SWORD");
+        cmdQueue.display();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "\n=== Damage Number Queue ===" << std::endl;
+        Queue<int> dmgQueue(3);
+
+        dmgQueue.push(125);
+        dmgQueue.push(87);
+        dmgQueue.push(42);
+        dmgQueue.display();
+
+        dmgQueue.pop();
+        dmgQueue.push(156);
+        dmgQueue.display();
+
+        dmgQueue.push(73); // Превышение емкости
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "\n=== Player Queue ===" << std::endl;
+        Queue<std::string> playerQueue(2);
+
+        playerQueue.push("WARRIOR");
+        playerQueue.push("MAGE");
+        playerQueue.display();
+
+        playerQueue.pop();
+        playerQueue.pop();
+        playerQueue.pop(); // Попытка удалить из пустой очереди
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
