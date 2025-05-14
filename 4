@@ -1,1 +1,111 @@
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <algorithm> // для std::find_if
 
+class Inventory {
+private:
+    std::vector<std::unique_ptr<std::string>> items;
+    size_t capacity;
+    size_t gold;
+
+public:
+    Inventory(size_t initial_capacity = 15) : capacity(initial_capacity), gold(100) {
+        items.reserve(capacity);
+    }
+
+    void addItem(const std::string& item) {
+        if (items.size() < capacity) {
+            // Проверяем, есть ли уже такой предмет
+            auto it = std::find_if(items.begin(), items.end(),
+                [&item](const auto& ptr) { return *ptr == item; });
+            
+            if (it == items.end()) {
+                items.push_back(std::make_unique<std::string>(item));
+                std::cout << "Added item: " << item << std::endl;
+            } else {
+                std::cout << "You already have " << item << " in your inventory.\n";
+            }
+        }
+        else {
+            std::cout << "Inventory is full! Cannot add " << item << std::endl;
+        }
+    }
+
+    void removeItem(const std::string& item) {
+        auto it = std::find_if(items.begin(), items.end(),
+            [&item](const auto& ptr) { return *ptr == item; });
+        
+        if (it != items.end()) {
+            std::cout << "Removed item: " << **it << std::endl;
+            items.erase(it);
+        } else {
+            std::cout << "Item " << item << " not found in inventory.\n";
+        }
+    }
+
+    void addGold(size_t amount) {
+        gold += amount;
+        std::cout << "Added " << amount << " gold. Total: " << gold << std::endl;
+    }
+
+    void displayInventory() const {
+        std::cout << "\n=== Inventory (" << items.size() << "/" << capacity << ") ===\n";
+        std::cout << "Gold: " << gold << "\n";
+        
+        if (items.empty()) {
+            std::cout << "Inventory is empty!\n";
+        }
+        else {
+            for (size_t i = 0; i < items.size(); ++i) {
+                std::cout << "[" << i + 1 << "] " << *items[i] << "\n";
+            }
+        }
+        std::cout << "=======================\n";
+    }
+
+    void upgradeCapacity(size_t additional_slots) {
+        capacity += additional_slots;
+        items.reserve(capacity);
+        std::cout << "Inventory capacity increased to " << capacity << " slots!\n";
+    }
+};
+
+int main() {
+    Inventory playerInventory(8); // Увеличил начальную вместимость
+
+    playerInventory.addItem("Dragonbone Sword");
+    playerInventory.addItem("Elven Health Potion");
+    playerInventory.addItem("Ring of Power");
+    playerInventory.addItem("Mithril Armor");
+    playerInventory.addItem("Ancient Tome");
+    playerInventory.addItem("Phoenix Feather");
+    playerInventory.addItem("Crystal of Mana");
+    playerInventory.addItem("Dwarven Rune");
+
+    playerInventory.addItem("Dragonbone Sword");
+
+    playerInventory.addGold(250);
+
+    playerInventory.displayInventory();
+
+    playerInventory.removeItem("Phoenix Feather");
+
+    playerInventory.upgradeCapacity(5);
+
+    playerInventory.addItem("Orb of Wisdom");
+    playerInventory.addItem("Scroll of Teleportation");
+
+    playerInventory.displayInventory();
+
+    {
+        Inventory merchantInventory(20);
+        merchantInventory.addItem("Potion of Invisibility");
+        merchantInventory.addItem("Map to the Lost City");
+        merchantInventory.addGold(1000);
+        merchantInventory.displayInventory();
+    }
+
+    return 0;
+}
