@@ -1,1 +1,133 @@
+#include <iostream>
+#include <string>
+#include <vector>
 
+class Person {
+private:
+    std::string name;
+    int age;
+    std::string email;
+    std::string address;
+    std::vector<std::string> phoneNumbers;
+
+public:
+    // Конструктор с параметрами по умолчанию
+    Person(const std::string& n = "", int a = 0, 
+           const std::string& e = "", const std::string& addr = "")
+        : name(n), age(a), email(e), address(addr) {}
+
+    // Геттеры
+    std::string getName() const {
+        return name;
+    }
+
+    int getAge() const {
+        return age;
+    }
+
+    std::string getEmail() const {
+        return email;
+    }
+
+    std::string getAddress() const {
+        return address;
+    }
+
+    const std::vector<std::string>& getPhoneNumbers() const {
+        return phoneNumbers;
+    }
+
+    // Сеттеры с валидацией
+    void setName(const std::string& newName) {
+        if (!newName.empty() && newName.length() <= 50) {
+            name = newName;
+        }
+        else {
+            std::cerr << "Error: Name must be 1-50 characters long!" << std::endl;
+        }
+    }
+
+    void setAge(int newAge) {
+        if (newAge >= 0 && newAge <= 120) {
+            age = newAge;
+        }
+        else {
+            std::cerr << "Error: Age must be between 0 and 120!" << std::endl;
+        }
+    }
+
+    void setEmail(const std::string& newEmail) {
+        if (newEmail.find('@') != std::string::npos && 
+            newEmail.find('.') != std::string::npos) {
+            email = newEmail;
+        }
+        else {
+            std::cerr << "Error: Invalid email format (must contain @ and .)!" << std::endl;
+        }
+    }
+
+    void setAddress(const std::string& newAddress) {
+        if (!newAddress.empty() && newAddress.length() <= 100) {
+            address = newAddress;
+        }
+        else {
+            std::cerr << "Error: Address must be 1-100 characters long!" << std::endl;
+        }
+    }
+
+    void addPhoneNumber(const std::string& phone) {
+        if (phone.length() >= 7 && phone.length() <= 15) {
+            phoneNumbers.push_back(phone);
+        }
+        else {
+            std::cerr << "Error: Phone number must be 7-15 digits!" << std::endl;
+        }
+    }
+
+    void displayInfo() const {
+        std::cout << "\n=== Personal Information ===" << std::endl;
+        std::cout << "Name: " << name << std::endl;
+        std::cout << "Age: " << age << std::endl;
+        std::cout << "Email: " << email << std::endl;
+        std::cout << "Address: " << address << std::endl;
+        
+        if (!phoneNumbers.empty()) {
+            std::cout << "Phone Numbers:" << std::endl;
+            for (const auto& num : phoneNumbers) {
+                std::cout << " - " << num << std::endl;
+            }
+        }
+    }
+};
+
+int main() {
+    Person person("Alice Smith", 28, "alice.smith@company.com", "456 Oak Ave, Boston");
+
+    // Добавляем номера телефонов
+    person.addPhoneNumber("+1234567890");
+    person.addPhoneNumber("555-1234");
+    person.addPhoneNumber("invalid"); // Это вызовет ошибку
+
+    // Отображаем информацию
+    person.displayInfo();
+
+    // Тестируем валидацию
+    std::cout << "\nTesting validation:" << std::endl;
+    person.setName(""); // Ошибка
+    person.setAge(130); // Ошибка
+    person.setEmail("no-at-sign"); // Ошибка
+    person.setAddress(""); // Ошибка
+
+    // Обновляем данные
+    std::cout << "\nUpdating information:" << std::endl;
+    person.setName("Alice Johnson");
+    person.setAge(29);
+    person.setEmail("alice.johnson@newmail.com");
+    person.setAddress("789 Pine Rd, Chicago");
+    person.addPhoneNumber("+1987654321");
+
+    // Отображаем обновлённую информацию
+    person.displayInfo();
+
+    return 0;
+}
