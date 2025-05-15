@@ -1,1 +1,106 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <random>
+#include <string>
 
+class Character {
+private:
+    std::string name;
+    int health;
+    int max_health;
+    int attack;
+    int defense;
+    std::mutex mtx;
+
+public:
+    Character(const std::string& n, int h, int a, int d)
+        : name(n), health(h), max_health(h), attack(a), defense(d) {}
+
+    void takeDamage(int damage) {
+        std::lock_guard<std::mutex> lock(mtx);
+        int actual_damage = std::max(1, damage - defense);
+        health -= actual_damage;
+        if (health < 0) health = 0;
+    }
+
+    void heal(int amount) {
+        std::lock_guard<std::mutex> lock(mtx);
+        health = std::min(max_health, health + amount);
+    }
+
+    int getAttack() const {
+        return attack;
+    }
+
+    std::string getName() const {
+        return name;
+    }
+
+    bool isAlive() const {
+        return health > 0;
+    }
+
+    void displayStatus() {
+        std::lock_guard<std::mutex> lock(mtx);
+        std::cout << name << " HP: " << health << "/" << max_health 
+                  << " ATK: " << attack << " DEF: " << defense << std::endl;
+    }
+};
+
+void fight(Character& attacker, Character& defender) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> damage_dist(attacker.getAttack()/2, attacker.getAttack());
+    std::uniform_int_distribution<> crit_dist(1, 10);
+
+    while (attacker.isAlive() && defender.isAlive()) {
+        // Chance for critical hit
+        bool is_critical = crit_dist(gen) == 10;
+        int base_damage = damage_dist(gen);
+        int damage = is_critical ? base_damage * 2 : base_damage;
+
+        defender.takeDamage(damage);
+
+        std::cout << attacker.getName() << (is_critical ? " CRITICALLY hits " : " hits ") 
+                  << defender.getName() << " for " << damage << " damage!" << std::endl;
+
+        // Small chance to heal after attack
+        if (crit_dist(gen) == 3) {
+            int heal_amount = attacker.getAttack() / 3;
+            attacker.heal(heal_amount);
+            std::cout << attacker.getName() << " heals for " << heal_amount << " HP!" << std::endl;
+        }
+
+        attacker.displayStatus();
+        defender.displayStatus();
+        std::cout << "------------------------" << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+
+        std::swap(attacker, defender);
+    }
+
+    if (attacker.isAlive()) {
+        std::cout << "\n" << attacker.getName() << " wins the battle!" << std::endl;
+    } else {
+        std::cout << "\n" << defender.getName() << " wins the battle!" << std::endl;
+    }
+}
+
+int main() {
+    Character hero("Shadow Knight", 120, 25, 5);
+    Character monster("Ancient Lich", 180, 18, 8);
+
+    std::cout << "Epic battle between " << hero.getName()
+              << " and " << monster.getName() << " begins!\n" << std::endl;
+    hero.displayStatus();
+    monster.displayStatus();
+    std::cout << "\nLet the battle commence!\n" << std::endl;
+
+    std::thread battleThread(fight, std::ref(hero), std::ref(monster));
+    battleThread.join();
+
+    return 0;
+}
