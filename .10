@@ -1,296 +1,378 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <memory>
 #include <algorithm>
-#include <sstream>
-#include <stdexcept>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
-// === Базовый класс User ===
 class User {
-protected:
+   protected:
     std::string name;
     int id;
     int accessLevel;
 
-public:
-    User(const std::string& n, int i, int a)
-        : name(n), id(i), accessLevel(a) {
-        if (name.empty()) throw std::invalid_argument("Name cannot be empty!");
-        if (a < 0) throw std::invalid_argument("Access level must be >= 0");
+   public:
+    User(const std::string& name, int id, int accessLevel)
+        : name(name), id(id), accessLevel(accessLevel) {
+        if (name.empty()) throw std::invalid_argument("Name can't be empty!");
+        if (id < 0) throw std::invalid_argument("ID can't be negative!");
+        if (accessLevel < 0) throw std::invalid_argument("Access level can't be negative!");
     }
-
-    virtual void displayInfo() const = 0;
 
     std::string getName() const { return name; }
     int getId() const { return id; }
     int getAccessLevel() const { return accessLevel; }
 
-    virtual ~User() = default;
+    void setName(const std::string& newName) {
+        if (newName.empty()) throw std::invalid_argument("Name can't be empty!");
+        name = newName;
+    }
+
+    void setAccessLevel(int newLevel) {
+        if (newLevel < 0) throw std::invalid_argument("Access level can't be negative!");
+        accessLevel = newLevel;
+    }
+
+    virtual void displayInfo() const {
+        std::cout << "Имя: " << name << ", ID: " << id << ", Уровень доступа: " << accessLevel;
+    }
+
+    virtual std::string save() const {
+        return name + "\n" + std::to_string(id) + "\n" + std::to_string(accessLevel) + "\n";
+    }
 };
 
-// === Класс Student ===
+bool cmpUserId(std::shared_ptr<User> a, std::shared_ptr<User> b) {
+    return a->getId() < b->getId();
+}
+
+bool cmpUserAccess(std::shared_ptr<User> a, std::shared_ptr<User> b) {
+    return a->getAccessLevel() < b->getAccessLevel() ||
+           a->getAccessLevel() == b->getAccessLevel() && cmpUserId(a, b);
+}
+
 class Student : public User {
-private:
+   private:
     std::string group;
 
-public:
-    Student(const std::string& n, int i, int a, const std::string& g)
-        : User(n, i, a), group(g) {}
+   public:
+    Student(const std::string& name, int id, int accessLevel, const std::string& group)
+        : User(name, id, accessLevel), group(group) {
+        if (group.empty()) throw std::invalid_argument("Group can't be empty!");
+    }
+
+    std::string getGroup() const { return group; }
+
+    void setGroup(const std::string& newGroup) {
+        if (group.empty()) throw std::invalid_argument("Group can't be empty!");
+        group = newGroup;
+    }
 
     void displayInfo() const override {
-        std::cout << "Student: " << getName()
-            << ", ID: " << getId()
-            << ", Group: " << group
-            << ", Access Level: " << getAccessLevel() << std::endl;
+        std::cout << "(Студент) ";
+        User::displayInfo();
+        std::cout << ", Группа: " << group << std::endl;
+    }
+
+    std::string save() const override {
+        return "Student\n" + User::save() + group + "\n";
     }
 };
 
-// === Класс Teacher ===
 class Teacher : public User {
-private:
+   private:
     std::string department;
 
-public:
-    Teacher(const std::string& n, int i, int a, const std::string& d)
-        : User(n, i, a), department(d) {}
+   public:
+    Teacher(const std::string& name, int id, int accessLevel, const std::string& department)
+        : User(name, id, accessLevel), department(department) {
+        if (department.empty()) throw std::invalid_argument("Department can't be empty!");
+    }
+
+    std::string getDepartment() const { return department; }
+
+    void setDepartment(const std::string& newDepartment) {
+        if (department.empty()) throw std::invalid_argument("Department can't be empty!");
+        department = newDepartment;
+    }
 
     void displayInfo() const override {
-        std::cout << "Teacher: " << getName()
-            << ", ID: " << getId()
-            << ", Department: " << department
-            << ", Access Level: " << getAccessLevel() << std::endl;
+        std::cout << "(Преподаватель) ";
+        User::displayInfo();
+        std::cout << ", Кафедра: " << department << std::endl;
+    }
+
+    std::string save() const override {
+        return "Teacher\n" + User::save() + department + "\n";
     }
 };
 
-// === Класс Administrator ===
 class Administrator : public User {
-private:
-    std::string role;
+   private:
+    std::string position;
 
-public:
-    Administrator(const std::string& n, int i, int a, const std::string& r)
-        : User(n, i, a), role(r) {}
+   public:
+    Administrator(const std::string& name, int id, int accessLevel, const std::string& position)
+        : User(name, id, accessLevel), position(position) {
+        if (position.empty()) throw std::invalid_argument("Position can't be empty!");
+    }
+
+    std::string getPosition() const { return position; }
+
+    void setPosition(const std::string& newPosition) {
+        if (position.empty()) throw std::invalid_argument("Position can't be empty!");
+        position = newPosition;
+    }
 
     void displayInfo() const override {
-        std::cout << "Administrator: " << getName()
-            << ", ID: " << getId()
-            << ", Role: " << role
-            << ", Access Level: " << getAccessLevel() << std::endl;
+        std::cout << "(Администратор) ";
+        User::displayInfo();
+        std::cout << ", Должность: " << position << std::endl;
+    }
+
+    std::string save() const override {
+        return "Administrator\n" + User::save() + position + "\n";
     }
 };
 
-// === Класс Resource ===
 class Resource {
-private:
+   private:
     std::string name;
     int requiredAccessLevel;
 
-public:
-    Resource(const std::string& n, int r)
-        : name(n), requiredAccessLevel(r) {
-        if (r < 0) throw std::invalid_argument("Required access level must be >= 0");
-    }
-
-    bool checkAccess(const User& user) const {
-        return user.getAccessLevel() >= requiredAccessLevel;
-    }
-
-    void displayInfo() const {
-        std::cout << "Resource: " << name
-            << ", Required Access Level: " << requiredAccessLevel << std::endl;
+   public:
+    Resource(const std::string& name, int requiredAccessLevel)
+        : name(name), requiredAccessLevel(requiredAccessLevel) {
+        if (name.empty()) throw std::invalid_argument("Name can't be empty!");
+        if (requiredAccessLevel < 0) throw std::invalid_argument("Access level can't be negative!");
     }
 
     std::string getName() const { return name; }
+
+    int getRequiredAccessLevel() const { return requiredAccessLevel; }
+
+    void setName(const std::string& newName) {
+        if (newName.empty()) throw std::invalid_argument("Name can't be empty!");
+        name = newName;
+    }
+
+    void setRequiredAccessLevel(int newLevel) {
+        if (requiredAccessLevel < 0) throw std::invalid_argument("Access level can't be negative!");
+        requiredAccessLevel = newLevel;
+    }
+
+    bool checkAccess(const User& user) const {
+        return requiredAccessLevel <= user.getAccessLevel();
+    }
+
+    void displayInfo() const {
+        std::cout << "Ресурс: " << name << ", Уровень доступа: " << requiredAccessLevel << std::endl;
+    }
+
+    std::string save() const {
+        return name + "\n" + std::to_string(requiredAccessLevel) + "\n";
+    }
+
+    Resource(std::ifstream& in) {
+        std::getline(in, name);
+        in >> requiredAccessLevel;
+        in.ignore();
+    }
 };
 
-// === Шаблонный класс AccessControlSystem ===
 template <typename T>
 class AccessControlSystem {
-private:
-    std::vector<std::unique_ptr<User>> users;
-    std::vector<std::unique_ptr<Resource>> resources;
+   private:
+    std::vector<std::shared_ptr<User>> users;
+    std::vector<std::shared_ptr<T>> resources;
 
-public:
-    void addUser(std::unique_ptr<User> user) {
-        users.push_back(std::move(user));
+   public:
+    void addUser(std::shared_ptr<User> user) {
+        users.push_back(user);
     }
 
-    void addResource(std::unique_ptr<Resource> resource) {
-        resources.push_back(std::move(resource));
+    void addResource(std::shared_ptr<T> resource) {
+        resources.push_back(resource);
     }
 
-    void listUsers() const {
+    std::vector<std::shared_ptr<User>> findUsersByName(const std::string& name) const {
+        std::vector<std::shared_ptr<User>> result;
+        for (const auto& user : users) {
+            if (user->getName() == name) {
+                result.push_back(user);
+            }
+        }
+        return result;
+    }
+
+    std::shared_ptr<User> findUserById(int id) const {
+        for (const auto& user : users) {
+            if (user->getId() == id) {
+                return user;
+            }
+        }
+        return nullptr;
+    }
+
+    bool checkAccess(int userId, const std::string& resourceName) const {
+        auto user = findUserById(userId);
+        if (user) {
+            for (const auto& resource : resources) {
+                if (resource->getName() == resourceName) {
+                    return resource->checkAccess(*user);
+                }
+            }
+        }
+        return false;
+    }
+
+    void displayUsers() const {
         for (const auto& user : users) {
             user->displayInfo();
         }
     }
 
-    void listResources() const {
+    void displayResourses() const {
         for (const auto& resource : resources) {
             resource->displayInfo();
         }
     }
 
-    void checkAccessForAll() const {
-        for (const auto& user : users) {
-            std::cout << "\nChecking access for: " << user->getName() << std::endl;
-            for (const auto& resource : resources) {
-                if (resource->checkAccess(*user)) {
-                    std::cout << " - Has access to " << resource->getName() << std::endl;
-                }
-                else {
-                    std::cout << " - NO access to " << resource->getName() << std::endl;
-                }
-            }
-        }
+    void sortUsersById() {
+        std::sort(users.begin(), users.end(), cmpUserId);
+    }
+
+    void sortUsersByAccessLevel() {
+        std::sort(users.begin(), users.end(), cmpUserAccess);
     }
 
     void saveToFile(const std::string& filename) const {
-        std::ofstream out(filename);
-        if (!out) {
-            throw std::runtime_error("Could not open file for writing: " + filename);
-        }
+        std::ofstream output(filename);
+        if (!output) throw std::runtime_error("Couldn't open save file!");
 
-        // Сохраняем пользователей
-        out << users.size() << std::endl;
+        output << users.size() << "\n";
         for (const auto& user : users) {
-            out << typeid(*user).name() << " "
-                << user->getName() << " "
-                << user->getId() << " "
-                << user->getAccessLevel() << " ";
-            if (auto student = dynamic_cast<Student*>(user.get())) {
-                out << student->group << std::endl;
-            }
-            else if (auto teacher = dynamic_cast<Teacher*>(user.get())) {
-                out << teacher->department << std::endl;
-            }
-            else if (auto admin = dynamic_cast<Administrator*>(user.get())) {
-                out << admin->role << std::endl;
-            }
+            output << user->save();
         }
 
-        // Сохраняем ресурсы
-        out << resources.size() << std::endl;
-        for (const auto& res : resources) {
-            out << res->getName() << " " << res->requiredAccessLevel << std::endl;
+        output << resources.size() << "\n";
+        for (const auto& resource : resources) {
+            output << resource->save();
         }
     }
 
     void loadFromFile(const std::string& filename) {
-        std::ifstream in(filename);
-        if (!in) {
-            throw std::runtime_error("Could not open file for reading: " + filename);
-        }
+        std::ifstream input(filename);
+        if (!input) throw std::runtime_error("Couldn't open save file!");
 
-        size_t userCount;
-        in >> userCount;
-        in.ignore();
+        users.clear();
+        resources.clear();
 
-        for (size_t i = 0; i < userCount; ++i) {
-            std::string type, name, extra;
-            int id, access;
+        int userCount;
+        input >> userCount;
+        input.ignore();
 
-            in >> type >> name >> id >> access;
-            std::getline(in, extra); // остальная часть строки
-
-            if (type == typeid(Student).name()) {
-                std::istringstream ss(extra);
-                std::string group;
-                ss >> group;
-                users.push_back(std::make_unique<Student>(name, id, access, group));
-            }
-            else if (type == typeid(Teacher).name()) {
-                std::istringstream ss(extra);
-                std::string dept;
-                ss >> dept;
-                users.push_back(std::make_unique<Teacher>(name, id, access, dept));
-            }
-            else if (type == typeid(Administrator).name()) {
-                std::istringstream ss(extra);
-                std::string role;
-                ss >> role;
-                users.push_back(std::make_unique<Administrator>(name, id, access, role));
-            }
-        }
-
-        size_t resCount;
-        in >> resCount;
-        for (size_t i = 0; i < resCount; ++i) {
+        for (int i = 0; i < userCount; ++i) {
+            std::string userType;
             std::string name;
-            int reqAccess;
-            in >> name >> reqAccess;
-            resources.push_back(std::make_unique<Resource>(name, reqAccess));
-        }
-    }
+            int id;
+            int accessLevel;
+            std::string field;
 
-    // Поиск пользователя по имени
-    std::vector<User*> findUsersByName(const std::string& name) const {
-        std::vector<User*> result;
-        for (const auto& user : users) {
-            if (user->getName().find(name) != std::string::npos)
-                result.push_back(user.get());
-        }
-        return result;
-    }
+            std::getline(input, userType);
+            std::getline(input, name);
+            input >> id;
+            input >> accessLevel;
+            input.ignore();
+            std::getline(input, field);
 
-    // Сортировка по уровню доступа
-    void sortUsersByAccessLevel() {
-        std::sort(users.begin(), users.end(),
-            [](const std::unique_ptr<User>& a, const std::unique_ptr<User>& b) {
-                return a->getAccessLevel() < b->getAccessLevel();
-            });
+            std::shared_ptr<User> user;
+            if (userType == "Student") {
+                user = std::make_shared<Student>(name, id, accessLevel, field);
+            } else if (userType == "Teacher") {
+                user = std::make_shared<Teacher>(name, id, accessLevel, field);
+            } else if (userType == "Administrator") {
+                user = std::make_shared<Administrator>(name, id, accessLevel, field);
+            } else {
+                throw std::runtime_error("Malformed save file!");
+            }
+            users.push_back(user);
+        }
+
+        int resourceCount;
+        input >> resourceCount;
+        input.ignore();
+
+        for (int i = 0; i < resourceCount; ++i) {
+            resources.push_back(std::make_shared<T>(input));
+        }
     }
 };
 
-// === Точка входа ===
 int main() {
     try {
-        AccessControlSystem<void> system;
+        AccessControlSystem<Resource> system;
 
-        // Добавляем пользователей
-        system.addUser(std::make_unique<Student>("Alice", 101, 1, "CS-101"));
-        system.addUser(std::make_unique<Teacher>("Bob", 201, 3, "Computer Science"));
-        system.addUser(std::make_unique<Administrator>("Charlie", 301, 5, "IT"));
+        system.addUser(std::make_shared<Teacher>("T3", 1, 3, "Department 1"));
+        system.addUser(std::make_shared<Teacher>("T4", 2, 4, "Department 2"));
+        system.addUser(std::make_shared<Administrator>("A6", 3, 6, "Position B"));
+        system.addUser(std::make_shared<Administrator>("A5", 4, 5, "Position A"));
+        system.addUser(std::make_shared<Student>("S1", 8, 1, "Group 101"));
+        system.addUser(std::make_shared<Student>("S1", 5, 1, "Group 101"));
+        system.addUser(std::make_shared<Student>("S2", 6, 2, "Group 201"));
+        system.addUser(std::make_shared<Student>("S1", 7, 1, "Group 101"));
 
-        // Добавляем ресурсы
-        system.addResource(std::make_unique<Resource>("Library", 1));
-        system.addResource(std::make_unique<Resource>("Server Room", 4));
+        std::cout << "Все пользователи:" << std::endl;
+        system.displayUsers();
 
-        // Выводим информацию
-        std::cout << "=== Users ===" << std::endl;
-        system.listUsers();
+        system.addResource(std::make_shared<Resource>("Аудитория 101", 1));
+        system.addResource(std::make_shared<Resource>("Библиотека", 2));
+        system.addResource(std::make_shared<Resource>("Лаборатория физики", 3));
+        system.addResource(std::make_shared<Resource>("Серверная", 5));
 
-        std::cout << "\n=== Resources ===" << std::endl;
-        system.listResources();
+        std::cout << "Все ресурсы:" << std::endl;
+        system.displayResourses();
 
-        std::cout << "\n=== Checking Access ===" << std::endl;
-        system.checkAccessForAll();
+        std::cout << "\nПроверка доступа:" << std::endl;
+        std::cout << "S1 в аудитории 101: "
+                  << (system.checkAccess(5, "Аудитория 101") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "S1 в лаборатории: "
+                  << (system.checkAccess(5, "Лаборатория физики") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "S2 в библиотеку: "
+                  << (system.checkAccess(6, "Библиотека") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "S2 в лаборатории: "
+                  << (system.checkAccess(6, "Лаборатория физики") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "T3 в лаборатории: "
+                  << (system.checkAccess(1, "Лаборатория физики") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "T3 в серверной: "
+                  << (system.checkAccess(1, "Серверная") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
+        std::cout << "A6 в серверной: "
+                  << (system.checkAccess(3, "Серверная") ? "Доступ разрешен" : "Доступ запрещен") << std::endl;
 
-        // Сохраняем в файл
-        system.saveToFile("university_data.txt");
-
-        // Загружаем обратно
-        AccessControlSystem<void> loadedSystem;
-        loadedSystem.loadFromFile("university_data.txt");
-
-        std::cout << "\n=== Loaded Users ===" << std::endl;
-        loadedSystem.listUsers();
-
-        std::cout << "\n=== Searching for Alice ===" << std::endl;
-        auto found = loadedSystem.findUsersByName("Alice");
-        for (auto* u : found) {
-            u->displayInfo();
+        std::cout << "\nПоиск пользователя по ID 2:" << std::endl;
+        auto user = system.findUserById(2);
+        if (user) {
+            user->displayInfo();
         }
 
-        std::cout << "\n=== Sorting by Access Level ===" << std::endl;
-        loadedSystem.sortUsersByAccessLevel();
-        loadedSystem.listUsers();
+        system.saveToFile("university_data.txt");
+        system.loadFromFile("university_data.txt");
 
-    }
-    catch (const std::exception& e) {
+        std::cout << "\nДанные после загрузки из файла:" << std::endl;
+        system.displayUsers();
+        system.displayResourses();
+
+        system.sortUsersByAccessLevel();
+        std::cout << "\nПользователи после сортировки по уровню доступа:" << std::endl;
+        system.displayUsers();
+
+        system.sortUsersById();
+        std::cout << "\nПользователи после сортировки по Id:" << std::endl;
+        system.displayUsers();
+
+    } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
     }
-
     return 0;
 }
